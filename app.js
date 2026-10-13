@@ -12,6 +12,8 @@ const partSpecs = document.querySelector("#part-specs");
 const fitButton = document.querySelector("#fit-view");
 const autoButton = document.querySelector("#toggle-auto");
 const showAllButton = document.querySelector("#show-all");
+const stage = document.querySelector(".stage");
+const viewButtons = document.querySelectorAll("[data-view]");
 
 const layers = [
   { id: "structure", label: "Коробка", color: 0xd9d4c8 },
@@ -150,11 +152,13 @@ const partData = [
 const layerState = new Map(layers.map((layer) => [layer.id, true]));
 const selectable = [];
 const modelRoot = new THREE.Group();
+const drawingRoot = new THREE.Group();
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 let selectedPart = null;
 let explodeAmount = 0;
 let autoOrbit = false;
+let currentView = "facade";
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xe7edeb);
@@ -176,6 +180,7 @@ controls.maxDistance = 18;
 controls.target.set(0, 1.75, 0);
 
 scene.add(modelRoot);
+scene.add(drawingRoot);
 
 const hemi = new THREE.HemisphereLight(0xffffff, 0x6b7b78, 2.2);
 scene.add(hemi);
@@ -211,6 +216,7 @@ scene.add(grid);
 buildLayerControls();
 buildHouse();
 selectPart(null);
+setDrawingView(currentView);
 resizeRenderer();
 renderer.setAnimationLoop(animate);
 
@@ -235,6 +241,10 @@ explodeRange.addEventListener("input", () => {
 
 document.querySelectorAll("[data-preset]").forEach((button) => {
   button.addEventListener("click", () => applyPreset(button.dataset.preset));
+});
+
+viewButtons.forEach((button) => {
+  button.addEventListener("click", () => setDrawingView(button.dataset.view));
 });
 
 canvas.addEventListener("pointerdown", onPointerDown);
@@ -268,6 +278,7 @@ function buildHouse() {
   });
 
   addSiteDetails();
+  addDrawingDetails();
   updateExplode();
 }
 
@@ -451,6 +462,83 @@ function addSiteDetails() {
   });
 }
 
+function addDrawingDetails() {
+  drawingRoot.add(createDimensionLine([-3.4, 0.08, -3.05], [3.4, 0.08, -3.05], "6.80 м", [0, 0, -0.32]));
+  drawingRoot.add(createDimensionLine([-3.72, 0.08, -2.6], [-3.72, 0.08, 2.6], "5.20 м", [-0.34, 0, 0]));
+  drawingRoot.add(createDimensionLine([4.35, 0.16, 2.45], [4.35, 4.38, 2.45], "4.85 м", [0.28, 0, 0]));
+
+  [
+    [-3.4, 0.03, -2.6, 3.4, 0.03, -2.6],
+    [-3.4, 0.03, 2.6, 3.4, 0.03, 2.6],
+    [-3.4, 0.03, -2.6, -3.4, 0.03, 2.6],
+    [3.4, 0.03, -2.6, 3.4, 0.03, 2.6],
+    [-3.4, 0.03, 0, 3.4, 0.03, 0],
+    [0, 0.03, -2.6, 0, 0.03, 2.6],
+  ].forEach((coords) => {
+    drawingRoot.add(createLine(coords.slice(0, 3), coords.slice(3), 0xd7f2ff, 0.46));
+  });
+
+  const section = new THREE.Mesh(
+    new THREE.BoxGeometry(0.035, 4.5, 5.7),
+    new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.12,
+      depthWrite: false,
+    }),
+  );
+  section.position.set(0.45, 2.1, 0);
+  drawingRoot.add(section);
+}
+
+function createDimensionLine(start, end, label, labelOffset) {
+  const group = new THREE.Group();
+  const material = new THREE.LineBasicMaterial({ color: 0xdff6ff, transparent: true, opacity: 0.86 });
+  const startVector = new THREE.Vector3(...start);
+  const endVector = new THREE.Vector3(...end);
+  const direction = new THREE.Vector3().subVectors(endVector, startVector).normalize();
+  const reference = Math.abs(direction.y) > 0.7 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
+  const tick = new THREE.Vector3().crossVectors(direction, reference).normalize().multiplyScalar(0.22);
+
+  group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([startVector, endVector]), material));
+  group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([startVector.clone().sub(tick), startVector.clone().add(tick)]), material));
+  group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([endVector.clone().sub(tick), endVector.clone().add(tick)]), material));
+
+  const labelSprite = createLabel(label);
+  labelSprite.position.copy(startVector).lerp(endVector, 0.5).add(new THREE.Vector3(...labelOffset));
+  group.add(labelSprite);
+  return group;
+}
+
+function createLine(start, end, color, opacity) {
+  return new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...start), new THREE.Vector3(...end)]),
+    new THREE.LineBasicMaterial({ color, transparent: true, opacity }),
+  );
+}
+
+function createLabel(text) {
+  const labelCanvas = document.createElement("canvas");
+  labelCanvas.width = 256;
+  labelCanvas.height = 64;
+  const ctx = labelCanvas.getContext("2d");
+  ctx.clearRect(0, 0, labelCanvas.width, labelCanvas.height);
+  ctx.fillStyle = "rgba(12, 42, 75, 0.74)";
+  ctx.fillRect(0, 0, labelCanvas.width, labelCanvas.height);
+  ctx.strokeStyle = "rgba(223, 246, 255, 0.92)";
+  ctx.strokeRect(1, 1, labelCanvas.width - 2, labelCanvas.height - 2);
+  ctx.fillStyle = "#f3fbff";
+  ctx.font = "700 24px Arial";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, labelCanvas.width / 2, labelCanvas.height / 2);
+
+  const texture = new THREE.CanvasTexture(labelCanvas);
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true }));
+  sprite.scale.set(1.15, 0.29, 1);
+  return sprite;
+}
+
 function syncLayerButtons() {
   layerControls.querySelectorAll("button").forEach((button) => {
     const active = layerState.get(button.dataset.layer);
@@ -475,6 +563,60 @@ function applyPreset(preset) {
   layers.forEach((layer) => layerState.set(layer.id, activeLayers.includes(layer.id)));
   syncLayerButtons();
   applyLayerVisibility();
+}
+
+function setDrawingView(view) {
+  currentView = view;
+  viewButtons.forEach((button) => {
+    const active = button.dataset.view === view;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+
+  stage.classList.toggle("drawing-mode", view !== "iso");
+  drawingRoot.visible = view !== "iso";
+  autoOrbit = false;
+  autoButton.classList.remove("active");
+  autoButton.setAttribute("aria-pressed", "false");
+
+  const views = {
+    iso: { position: [7.6, 5.2, 8.4], target: [0, 1.72, 0], zoom: 1 },
+    plan: { position: [0.02, 12.5, 0.02], target: [0, 0.25, 0], zoom: 1.2 },
+    facade: { position: [0, 2.7, -12.5], target: [0, 2.05, 0], zoom: 1.05 },
+    section: { position: [9.8, 3.15, 0.05], target: [0.25, 1.95, 0], zoom: 1.08 },
+  };
+  const preset = views[view];
+  camera.position.set(...preset.position);
+  controls.target.set(...preset.target);
+  camera.zoom = preset.zoom;
+  camera.updateProjectionMatrix();
+  controls.update();
+  applyDrawingMaterials();
+}
+
+function applyDrawingMaterials() {
+  const drawing = currentView !== "iso";
+  scene.background = new THREE.Color(drawing ? 0x123c69 : 0xe7edeb);
+  scene.fog = drawing ? null : new THREE.Fog(0xe7edeb, 12, 30);
+  ground.visible = !drawing;
+  grid.visible = !drawing;
+
+  selectable.forEach((part) => {
+    part.traverse((child) => {
+      if (!child.isMesh || !child.material) return;
+      if (!child.userData.baseMaterial) child.userData.baseMaterial = child.material;
+      if (!child.userData.drawingMaterial) {
+        child.userData.drawingMaterial = new THREE.MeshBasicMaterial({
+          color: child.userData.baseColor ?? child.material.color,
+          transparent: true,
+          opacity: 0.18,
+          wireframe: true,
+        });
+      }
+      child.material = drawing ? child.userData.drawingMaterial : child.userData.baseMaterial;
+    });
+  });
+  if (selectedPart) setPartHighlight(selectedPart, true);
 }
 
 function updateExplode() {
@@ -546,8 +688,7 @@ function renderSpecs(specs) {
 }
 
 function fitView() {
-  controls.target.set(0, 1.72, 0);
-  camera.position.set(7.6, 5.2, 8.4);
+  setDrawingView(currentView);
 }
 
 function resizeRenderer() {

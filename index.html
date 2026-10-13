@@ -20,13 +20,50 @@
   </head>
   <body>
     <main class="app-shell">
-      <section class="stage" aria-label="3D модель дома">
+      <section class="stage drawing-mode" aria-label="3D модель дома">
         <canvas id="house-canvas"></canvas>
+        <svg class="drawing-overlay" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <pattern id="minor-grid" width="20" height="20" patternUnits="userSpaceOnUse">
+              <path d="M 20 0 L 0 0 0 20" />
+            </pattern>
+            <pattern id="major-grid" width="100" height="100" patternUnits="userSpaceOnUse">
+              <rect width="100" height="100" fill="url(#minor-grid)" />
+              <path d="M 100 0 L 0 0 0 100" />
+            </pattern>
+            <marker id="arrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+              <path d="M 0 0 L 8 4 L 0 8 z" />
+            </marker>
+          </defs>
+          <rect width="1000" height="1000" fill="url(#major-grid)" />
+          <g class="dimension-lines">
+            <path d="M 214 822 L 786 822" />
+            <path d="M 214 792 L 214 852" />
+            <path d="M 786 792 L 786 852" />
+            <path d="M 832 265 L 832 716" />
+            <path d="M 802 265 L 862 265" />
+            <path d="M 802 716 L 862 716" />
+            <path d="M 255 208 L 745 208" />
+            <path d="M 255 178 L 255 238" />
+            <path d="M 745 178 L 745 238" />
+          </g>
+          <g class="axis-lines">
+            <path d="M 160 500 L 840 500" />
+            <path d="M 500 170 L 500 830" />
+          </g>
+          <g class="drawing-labels">
+            <text x="500" y="805">6.80 м</text>
+            <text x="850" y="500" transform="rotate(-90 850 500)">4.85 м</text>
+            <text x="500" y="191">фасад А-Г</text>
+            <text x="174" y="493">ОСЬ 1</text>
+            <text x="510" y="183">ОСЬ Б</text>
+          </g>
+        </svg>
 
         <header class="topbar">
           <div>
-            <p class="eyebrow">Конструкторская разработка</p>
-            <h1>3D дом по слоям</h1>
+            <p class="eyebrow">АР / КР / КЖ</p>
+            <h1>Дом в чертежах</h1>
           </div>
           <div class="topbar-actions" aria-label="Режимы просмотра">
             <button class="icon-button" id="fit-view" type="button" title="Показать целиком" aria-label="Показать целиком">
@@ -63,6 +100,16 @@
               <button type="button" data-preset="facade">Фасад</button>
             </div>
           </div>
+
+          <div class="panel-section compact">
+            <span class="section-title">Чертежи</span>
+            <div class="view-row">
+              <button type="button" data-view="iso">3D</button>
+              <button type="button" data-view="plan">План</button>
+              <button type="button" class="active" data-view="facade">Фасад</button>
+              <button type="button" data-view="section">Разрез</button>
+            </div>
+          </div>
         </aside>
 
         <aside class="info-panel" aria-live="polite" aria-label="Информация о выбранной детали">
@@ -80,6 +127,12 @@
           <span>158 м²</span>
           <span>Гараж</span>
           <span>Терраса</span>
+        </div>
+
+        <div class="title-block" aria-label="Штамп чертежа">
+          <span>Лист АР-01</span>
+          <strong>Обмерная 3D-схема</strong>
+          <span>М 1:100</span>
         </div>
       </section>
     </main>
