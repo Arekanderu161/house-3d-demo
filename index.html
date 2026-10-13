@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Интерактивная 3D-демонстрация проекта дома с разборкой по конструктивным слоям."
+    />
+    <title>3D разработка дома</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./vendor/three/three.module.js",
+          "three/addons/": "./vendor/three/addons/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="stage" aria-label="3D модель дома">
+        <canvas id="house-canvas"></canvas>
+
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Конструкторская разработка</p>
+            <h1>3D дом по слоям</h1>
+          </div>
+          <div class="topbar-actions" aria-label="Режимы просмотра">
+            <button class="icon-button" id="fit-view" type="button" title="Показать целиком" aria-label="Показать целиком">
+              ⛶
+            </button>
+            <button class="icon-button" id="toggle-auto" type="button" title="Автооблет" aria-label="Автооблет">
+              ◌
+            </button>
+          </div>
+        </header>
+
+        <aside class="control-panel" aria-label="Параметры модели">
+          <div class="panel-section">
+            <div class="section-head">
+              <span>Слои</span>
+              <button id="show-all" type="button">Все</button>
+            </div>
+            <div class="layer-grid" id="layer-controls"></div>
+          </div>
+
+          <div class="panel-section">
+            <label class="range-label" for="explode-range">
+              <span>Разборка</span>
+              <output id="explode-output" for="explode-range">0%</output>
+            </label>
+            <input id="explode-range" type="range" min="0" max="100" value="0" />
+          </div>
+
+          <div class="panel-section compact">
+            <span class="section-title">Сценарии</span>
+            <div class="preset-row">
+              <button type="button" data-preset="shell">Коробка</button>
+              <button type="button" data-preset="engineering">Инженерия</button>
+              <button type="button" data-preset="facade">Фасад</button>
+            </div>
+          </div>
+        </aside>
+
+        <aside class="info-panel" aria-live="polite" aria-label="Информация о выбранной детали">
+          <div class="part-kicker" id="part-layer">Проект дома</div>
+          <h2 id="part-title">Общая модель</h2>
+          <p id="part-copy">
+            Наглядный макет показывает, как проект раскладывается на конструктивные элементы,
+            пригодные для чертежей, спецификации и согласования.
+          </p>
+          <dl class="part-specs" id="part-specs"></dl>
+        </aside>
+
+        <div class="status-strip" aria-label="Сводка проекта">
+          <span>2 этажа</span>
+          <span>158 м²</span>
+          <span>Гараж</span>
+          <span>Терраса</span>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
